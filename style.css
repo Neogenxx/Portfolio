@@ -1,11 +1,10 @@
 /* ── VARIABLES ── */
 :root {
-  --bg: #0e0e0e;
-  --card: #1a1a1a;
-  --border: #2a2a2a;
-  --accent: #ffffff;
-  --muted: #888888;
-  --green: #4ade80;
+  --bg:      #0e0e0e;
+  --card:    #1a1a1a;
+  --border:  #2a2a2a;
+  --muted:   #888888;
+  --green:   #4ade80;
   --pill-bg: #1c1c1c;
 }
 
@@ -20,6 +19,7 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Body is the root stacking context */
 body {
   background: var(--bg);
   color: #fff;
@@ -27,21 +27,27 @@ body {
   font-size: 15px;
   line-height: 1.6;
   overflow-x: hidden;
+  /* isolate creates a stacking context so z-index layers are predictable */
+  isolation: isolate;
 }
 
-/* DOTTED BACKGROUND — handled by canvas in script.js */
+/* ── CANVAS DOT BACKGROUND ── */
 #dot-canvas {
   position: fixed;
-  inset: 0;
-  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;           /* behind everything */
   pointer-events: none;
+  display: block;
 }
 
 /* ── NAV ── */
 nav {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 1000;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -49,7 +55,6 @@ nav {
 }
 
 .nav-logo {
-  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.18em;
@@ -75,7 +80,7 @@ nav {
   font-weight: 500;
   padding: 6px 18px;
   border-radius: 999px;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 .nav-pill a:hover,
@@ -93,7 +98,7 @@ nav {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--pill-bg);
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 .nav-contact:hover {
@@ -101,10 +106,10 @@ nav {
   color: #000;
 }
 
-/* ── SECTIONS ── */
+/* ── SECTIONS (generic) ── */
 section {
   position: relative;
-  z-index: 1;
+  z-index: 2;           /* above canvas */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -136,6 +141,8 @@ section {
   text-align: center;
 }
 
+/* Hero children animate in — use animation-fill-mode: forwards
+   so opacity ends at 1, not snapping back to 0 */
 .hero-eyebrow {
   display: inline-block;
   font-size: 11px;
@@ -146,8 +153,8 @@ section {
   border-radius: 999px;
   padding: 6px 16px;
   margin-bottom: 32px;
-  opacity: 0;
-  animation: fadeUp 0.6s ease forwards 0.1s;
+  animation: fadeUp 0.6s ease both;
+  animation-delay: 0.15s;
 }
 
 .hero-name {
@@ -157,8 +164,8 @@ section {
   line-height: 0.95;
   letter-spacing: -0.03em;
   margin-bottom: 24px;
-  opacity: 0;
-  animation: fadeUp 0.7s ease forwards 0.3s;
+  animation: fadeUp 0.7s ease both;
+  animation-delay: 0.3s;
 }
 
 .hero-name .dim {
@@ -171,8 +178,8 @@ section {
   color: var(--muted);
   font-size: 15px;
   line-height: 1.8;
-  opacity: 0;
-  animation: fadeUp 0.7s ease forwards 0.5s;
+  animation: fadeUp 0.7s ease both;
+  animation-delay: 0.45s;
 }
 
 .hero-badges {
@@ -181,8 +188,8 @@ section {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 48px;
-  opacity: 0;
-  animation: fadeUp 0.7s ease forwards 0.65s;
+  animation: fadeUp 0.7s ease both;
+  animation-delay: 0.6s;
 }
 
 .badge {
@@ -204,32 +211,32 @@ section {
   display: flex;
   gap: 12px;
   justify-content: center;
-  opacity: 0;
-  animation: fadeUp 0.7s ease forwards 0.8s;
+  animation: fadeUp 0.7s ease both;
+  animation-delay: 0.75s;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
   padding: 12px 28px;
   border-radius: 999px;
   text-decoration: none;
   cursor: pointer;
-  border: none;
-  transition: all 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
 .btn-white {
   background: #fff;
   color: #000;
+  border: 1px solid #fff;
 }
 
 .btn-white:hover {
-  background: #ddd;
+  background: #e0e0e0;
+  border-color: #e0e0e0;
 }
 
 .btn-outline {
@@ -246,20 +253,21 @@ section {
 .about-card {
   position: relative;
   max-width: 780px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 56px 64px;
   text-align: center;
 }
 
+/* Corner bracket decorations */
 .about-card::before,
 .about-card::after {
   content: '';
   position: absolute;
   width: 20px;
   height: 20px;
-  border-color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
   border-style: solid;
 }
 
@@ -276,14 +284,14 @@ section {
 }
 
 .about-card p {
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.85;
-  color: #ccc;
+  color: #bbb;
   font-weight: 300;
 }
 
 .about-card p + p {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .about-card strong {
@@ -309,7 +317,7 @@ section {
   background: var(--pill-bg);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 28px 28px 24px;
+  padding: 28px;
   transition: border-color 0.2s, transform 0.2s;
 }
 
@@ -338,17 +346,18 @@ section {
   border: 1px solid var(--border);
   border-radius: 999px;
   color: #ddd;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* ── PROJECTS ── */
 #projects {
   padding-top: 100px;
+  padding-bottom: 80px;
 }
 
-.projects-carousel {
+.projects-grid {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
@@ -358,7 +367,7 @@ section {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  aspect-ratio: 4/3;
+  aspect-ratio: 4 / 3;
   background: var(--card);
   border: 1px solid var(--border);
   text-decoration: none;
@@ -366,61 +375,73 @@ section {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  transition: transform 0.3s ease, border-color 0.3s;
-  cursor: pointer;
+  transition: transform 0.3s, border-color 0.3s;
 }
 
-.project-card:hover {
+.project-card:not(.no-link):hover {
   transform: translateY(-6px);
   border-color: #555;
 }
 
+/* Full-bleed decorative background */
 .project-card-bg {
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center;
   transition: transform 0.4s;
 }
 
-.project-card:hover .project-card-bg {
+.project-card-bg svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.project-card:not(.no-link):hover .project-card-bg {
   transform: scale(1.04);
 }
 
+/* Gradient overlay so text is always readable */
 .project-card::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.90) 0%,
+    rgba(0, 0, 0, 0.30) 55%,
+    transparent 100%
+  );
   pointer-events: none;
+  z-index: 1;
 }
 
 .project-card-content {
   position: relative;
   z-index: 2;
-  padding: 24px;
+  padding: 22px;
 }
 
 .project-category {
   font-size: 10px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 6px;
 }
 
 .project-name {
   font-family: 'Playfair Display', serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1.2;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .project-desc {
   font-size: 12px;
-  color: rgba(255,255,255,0.6);
-  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.55;
   margin-bottom: 14px;
 }
 
@@ -434,10 +455,10 @@ section {
   font-size: 10px;
   font-weight: 500;
   padding: 3px 10px;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
-  color: rgba(255,255,255,0.8);
-  background: rgba(255,255,255,0.07);
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 /* ── EDUCATION ── */
@@ -472,7 +493,7 @@ section {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--green);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .edu-school {
@@ -485,6 +506,7 @@ section {
 .edu-degree {
   font-size: 13px;
   color: var(--muted);
+  line-height: 1.5;
 }
 
 /* ── ACHIEVEMENTS ── */
@@ -503,21 +525,24 @@ section {
   display: flex;
   align-items: center;
   gap: 20px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, transform 0.2s;
 }
 
 .ach-card:hover {
   border-color: #444;
+  transform: translateY(-3px);
 }
 
 .ach-medal {
   font-size: 36px;
   flex-shrink: 0;
+  line-height: 1;
 }
 
-.ach-text {
-  font-size: 15px;
+.ach-label {
+  font-size: 13px;
   color: #aaa;
+  margin-bottom: 4px;
 }
 
 .ach-event {
@@ -525,7 +550,6 @@ section {
   font-size: 20px;
   font-weight: 700;
   color: #fff;
-  margin-top: 4px;
 }
 
 /* ── CONTACT ── */
@@ -564,30 +588,30 @@ section {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .contact-value {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #fff;
 }
 
 .contact-arr {
-  font-size: 20px;
+  font-size: 18px;
   color: var(--muted);
-  transition: all 0.2s;
+  transition: color 0.2s, transform 0.2s;
 }
 
 .contact-card:hover .contact-arr {
   color: #fff;
-  transform: translate(2px, -2px);
+  transform: translate(3px, -3px);
 }
 
 /* ── FOOTER ── */
 footer {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   border-top: 1px solid var(--border);
   padding: 24px 48px;
   display: flex;
@@ -596,17 +620,24 @@ footer {
   font-size: 12px;
 }
 
-/* ── ANIMATIONS ── */
+/* ── KEYFRAMES ── */
+/* "both" fill-mode: starts at from-state before delay, ends at to-state after */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(22px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── SCROLL REVEAL ── */
 .reveal {
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 0.65s ease, transform 0.65s ease;
+  transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
 .reveal.visible {
@@ -616,16 +647,38 @@ footer {
 
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
-  nav { padding: 16px 24px; }
-  .nav-pill a { padding: 6px 12px; font-size: 12px; }
-  section { padding: 100px 24px 60px; }
-  .projects-carousel { grid-template-columns: 1fr; }
-  .edu-grid { grid-template-columns: 1fr; }
-  .contact-grid { grid-template-columns: 1fr; }
-  .about-card { padding: 40px 28px; }
+  nav {
+    padding: 16px 20px;
+  }
+
+  .nav-pill a {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  section {
+    padding: 100px 20px 60px;
+  }
+
+  .about-card {
+    padding: 36px 24px;
+  }
+
   #expertise,
   #education,
-  #achievements,
-  #youtube { padding: 60px 24px; }
-  .yt-card { flex-direction: column; align-items: flex-start; padding: 28px; }
+  #achievements {
+    padding: 60px 20px;
+  }
+
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
 }

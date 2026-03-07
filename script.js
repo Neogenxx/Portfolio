@@ -1,82 +1,97 @@
-// ── INTERACTIVE DOT BACKGROUND ──
-(function () {
+/* ─────────────────────────────────────────────────────
+   1. INTERACTIVE DOT CANVAS
+   Canvas is position:fixed so it tracks the viewport.
+   Mouse coords are clientX/Y (viewport-relative) — correct.
+───────────────────────────────────────────────────── */
+(function initCanvas() {
   const canvas = document.getElementById('dot-canvas');
-  const ctx    = canvas.getContext('2d');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-  const SPACING     = 28;   // gap between dots
-  const DOT_RADIUS  = 1.2;  // resting dot size
-  const REPEL_DIST  = 90;   // how far the cursor repels
-  const REPEL_FORCE = 5.5;  // push strength
-  const FRICTION    = 0.82; // velocity damping (higher = snappier return)
-  const DOT_COLOR   = 'rgba(255,255,255,0.13)';
+  /* ── Config ── */
+  const SPACING    = 28;    // px between dot origins
+  const R          = 1.2;   // dot draw radius
+  const INFLUENCE  = 110;   // cursor repel radius (px)
+  const PUSH       = 7;     // repel force magnitude
+  const SPRING     = 0.065; // return-to-origin stiffness
+  const DAMP       = 0.78;  // velocity damping per frame
 
-  let W, H, cols, rows, dots;
+  let W, H, dots = [];
   const mouse = { x: -9999, y: -9999 };
 
-  function buildGrid() {
-    W    = canvas.width  = window.innerWidth;
-    H    = canvas.height = window.innerHeight;
-    cols = Math.ceil(W / SPACING) + 1;
-    rows = Math.ceil(H / SPACING) + 1;
+  /* ── Build grid ── */
+  function build() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
 
+    const cols = Math.ceil(W / SPACING) + 1;
+    const rows = Math.ceil(H / SPACING) + 1;
     dots = [];
+
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        dots.push({
-          ox: c * SPACING,   // origin x
-          oy: r * SPACING,   // origin y
-          x:  c * SPACING,   // current x
-          y:  r * SPACING,   // current y
-          vx: 0,
-          vy: 0,
-        });
+        const ox = c * SPACING;
+        const oy = r * SPACING;
+        dots.push({ ox, oy, x: ox, y: oy, vx: 0, vy: 0 });
       }
     }
   }
 
-  function update() {
+  /* ── Physics ── */
+  function step() {
     for (const d of dots) {
-      const dx = d.x - mouse.x;
-      const dy = d.y - mouse.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dx   = d.x - mouse.x;
+      const dy   = d.y - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
 
-      if (dist < REPEL_DIST && dist > 0) {
-        const force = (REPEL_DIST - dist) / REPEL_DIST;
-        d.vx += (dx / dist) * force * REPEL_FORCE;
-        d.vy += (dy / dist) * force * REPEL_FORCE;
+      if (dist < INFLUENCE) {
+        /* Quadratic falloff: strongest near cursor */
+        const t = 1 - dist / INFLUENCE;
+        const f = t * t * PUSH;
+        d.vx += (dx / dist) * f;
+        d.vy += (dy / dist) * f;
       }
 
-      // Spring back to origin
-      d.vx += (d.ox - d.x) * 0.08;
-      d.vy += (d.oy - d.y) * 0.08;
+      /* Spring back to origin */
+      d.vx += (d.ox - d.x) * SPRING;
+      d.vy += (d.oy - d.y) * SPRING;
 
-      // Friction
-      d.vx *= FRICTION;
-      d.vy *= FRICTION;
+      /* Friction */
+      d.vx *= DAMP;
+      d.vy *= DAMP;
 
       d.x += d.vx;
       d.y += d.vy;
     }
   }
 
-  function draw() {
+  /* ── Render ── */
+  function render() {
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = DOT_COLOR;
 
     for (const d of dots) {
+      const dx   = d.x - mouse.x;
+      const dy   = d.y - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      /* Dots near cursor glow slightly brighter */
+      const glow  = Math.max(0, 1 - dist / INFLUENCE);
+      const alpha = 0.10 + glow * 0.28;
+
       ctx.beginPath();
-      ctx.arc(d.x, d.y, DOT_RADIUS, 0, Math.PI * 2);
+      ctx.arc(d.x, d.y, R, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
       ctx.fill();
     }
   }
 
+  /* ── Loop ── */
   function loop() {
-    update();
-    draw();
+    step();
+    render();
     requestAnimationFrame(loop);
   }
 
-  // Track mouse across the whole page
+  /* ── Events ── */
   window.addEventListener('mousemove', e => {
     mouse.x = e.clientX;
     mouse.y = e.clientY;
@@ -87,38 +102,55 @@
     mouse.y = -9999;
   });
 
-  window.addEventListener('resize', buildGrid);
+  /* Debounced resize */
+  let resizeId;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeId);
+    resizeId = setTimeout(build, 150);
+  });
 
-  buildGrid();
+  build();
   loop();
 })();
 
 
-// ── ACTIVE NAV HIGHLIGHT ON SCROLL ──
-const sections = document.querySelectorAll('section[id]');
-const navLinks  = document.querySelectorAll('.nav-pill a[data-section]');
+/* ─────────────────────────────────────────────────────
+   2. NAV ACTIVE STATE ON SCROLL
+───────────────────────────────────────────────────── */
+(function initNav() {
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('.nav-pill a[data-section]');
+  if (!sections.length || !links.length) return;
 
-const navObserver = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (!entry.isIntersecting) return;
-    navLinks.forEach(link => link.classList.remove('active'));
-    const active = document.querySelector(
-      `.nav-pill a[data-section="${entry.target.id}"]`
-    );
-    if (active) active.classList.add('active');
-  });
-}, { threshold: 0.45 });
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      links.forEach(l => l.classList.remove('active'));
+      const match = document.querySelector(
+        `.nav-pill a[data-section="${e.target.id}"]`
+      );
+      if (match) match.classList.add('active');
+    });
+  }, { threshold: 0.4 });
 
-sections.forEach(section => navObserver.observe(section));
+  sections.forEach(s => obs.observe(s));
+})();
 
 
-// ── SCROLL REVEAL ──
-const revealObserver = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (!entry.isIntersecting) return;
-    entry.target.classList.add('visible');
-    revealObserver.unobserve(entry.target);
-  });
-}, { threshold: 0.1 });
+/* ─────────────────────────────────────────────────────
+   3. SCROLL REVEAL
+───────────────────────────────────────────────────── */
+(function initReveal() {
+  const els = document.querySelectorAll('.reveal');
+  if (!els.length) return;
 
-document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('visible');
+      obs.unobserve(e.target);
+    });
+  }, { threshold: 0.08 });
+
+  els.forEach(el => obs.observe(el));
+})();
